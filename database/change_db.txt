@@ -1,0 +1,1 @@
+ALTER TABLE nv4_vi_page MODIFY image MEDIUMTEXT;

@@ -59,13 +59,18 @@ if ($nv_Request->get_int('save', 'post') == '1') {
         $row['alias'] = strtolower($row['alias']);
     }
     $row['alias'] = nv_substr($row['alias'], 0, 250);
-
-    $image = $nv_Request->get_string('image', 'post', '');
-    if (nv_is_file($image, NV_UPLOADS_DIR . '/' . $module_upload)) {
-        $row['image'] = substr($image, strlen(NV_BASE_SITEURL . NV_UPLOADS_DIR . '/' . $module_upload . '/'));
-    } else {
-        $row['image'] = '';
+    // edit image
+    $image_request = $nv_Request->get_array('images', 'post', []);
+    $images = [];
+    if (!empty($image_request)) {
+        foreach ($image_request as $image) {
+            if (nv_is_file($image, NV_UPLOADS_DIR . '/' . $module_upload)) {
+                $images[] = substr($image, strlen(NV_BASE_SITEURL . NV_UPLOADS_DIR . '/' . $module_upload . '/'));
+            }
+        }
     }
+    $row['image'] = json_encode($images);
+
     $row['imagealt'] = $nv_Request->get_title('imagealt', 'post', '', 1);
     $row['imageposition'] = $nv_Request->get_int('imageposition', 'post', 0);
 
@@ -198,9 +203,9 @@ if (defined('NV_EDITOR') and nv_function_exists('nv_aleditor')) {
     $row['bodytext'] = '<textarea style="width:100%;height:300px" name="bodytext">' . $row['bodytext'] . '</textarea>';
 }
 
-if (!empty($row['image']) and is_file(NV_UPLOADS_REAL_DIR . '/' . $module_upload . '/' . $row['image'])) {
-    $row['image'] = NV_BASE_SITEURL . NV_UPLOADS_DIR . '/' . $module_upload . '/' . $row['image'];
-}
+// if (!empty($row['image']) and is_file(NV_UPLOADS_REAL_DIR . '/' . $module_upload . '/' . $row['image'])) {
+//     $row['image'] = NV_BASE_SITEURL . NV_UPLOADS_DIR . '/' . $module_upload . '/' . $row['image'];
+// }
 $lang_global['title_suggest_max'] = sprintf($lang_global['length_suggest_max'], 65);
 $lang_global['description_suggest_max'] = sprintf($lang_global['length_suggest_max'], 160);
 
@@ -214,6 +219,24 @@ $xtpl->assign('BODYTEXT', $row['bodytext']);
 $xtpl->assign('SOCIALBUTTON', ($row['socialbutton']) ? ' checked="checked"' : '');
 $xtpl->assign('HOST_POST', ($row['hot_post']) ? ' checked="checked"' : '');
 $xtpl->assign('ISCOPY', $copy);
+
+// Xữ lý hiển thị ra view
+$total_image = 1;
+$image_response = json_decode($row['image']);
+if (!empty($image_response)) {
+    foreach ($image_response as $key => $image) {
+        if (is_file(NV_UPLOADS_REAL_DIR . '/' . $module_upload . '/' . $image)) {
+            $data = [
+                'src' =>  NV_BASE_SITEURL . NV_UPLOADS_DIR . '/' . $module_upload . '/' . $image,
+                'index' => $key
+            ];
+            $xtpl->assign('IMAGE', $data);
+        }
+        $xtpl->parse('main.images');
+    }
+    $total_image = count($image_response);
+}
+$xtpl->assign('TOTAL_IMAGE', $total_image);
 
 foreach ($layout_array as $value) {
     $value = preg_replace($global_config['check_op_layout'], '\\1', $value);

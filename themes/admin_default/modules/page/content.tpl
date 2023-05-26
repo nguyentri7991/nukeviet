@@ -26,7 +26,21 @@
                         </tr>
                         <tr>
                             <td class="text-right">{LANG.image}</td>
-                            <td><input class="w300 form-control pull-left" type="text" name="image" id="image" value="{DATA.image}" style="margin-right: 5px"/><input type="button" value="Browse server" name="selectimg" class="btn btn-info"/></td>
+                            <td>
+                                <!-- <input class="w300 form-control pull-left" type="text" name="image" id="image" value="{DATA.image}" style="margin-right: 5px"/><input type="button" value="Browse server" name="selectimg" class="btn btn-info"/> -->
+                                <button type="button" class="btn-sm btn btn-success" data-toggle="elementAdd">
+                                    <i class="fa fa-plus-circle" aria-hidden="true"></i> {LANG.image}
+                                </button>
+                                <div id="element-rows-container">
+                                    <!-- BEGIN: images -->
+                                        <div data-toggle="rowElement" data-offset="{IMAGE.index}" >
+                                            <input class="w300 form-control pull-left" type="text" name="images[]" id="image_{IMAGE.index}" value="{IMAGE.src}" style="margin-right: 5px"/>
+                                            <input type="button" value="Browse server" onclick="selectImage({IMAGE.index})" class="btn btn-info"/>
+                                            <button class="btn btn-danger" data-toggle="elementDel" data-offset="{IMAGE.index}"><i class="fa fa-trash"></i></button>
+                                        </div>
+                                    <!-- END: images -->
+                                </div>
+                            </td>
                         </tr>
                         <tr>
                             <td class="text-right">{LANG.imagealt}</td>
@@ -125,4 +139,36 @@
     });
 </script>
 <!-- END: get_alias -->
+<script type="text/javascript">
+    $(document).ready(function() {
+        var item_count = {TOTAL_IMAGE};
+        $(document).delegate('[data-toggle="elementDel"]', 'click', function(e) {
+            e.preventDefault();
+            var offset = $(this).data('offset');
+            $('[data-toggle="rowElement"][data-offset="' + offset + '"]').remove();
+        });
+        $('[data-toggle="elementAdd"]').on('click', function(e) {
+            e.preventDefault();
+            var html = '\
+            <tr data-toggle="rowElement" data-offset="' + item_count + '">\
+                <td>\
+                    <input class="w300 form-control pull-left" type="text" name="images[]" id="image_' + item_count + '" style="margin-right: 5px"/>\
+                    <input type="button" value="Browse server" onclick="selectImage(' + item_count + ')" class="btn btn-info"/>\
+                    <button class="btn btn-danger" data-toggle="elementDel" data-offset="' + item_count + '"><i class="fa fa-trash"></i></button>\
+                </td>\
+            </tr>';
+            $('#element-rows-container').append(html);
+            item_count++;
+        });
+    });
+    function selectImage(item_count) {
+        var area = "image_" + item_count;
+        var alt = "imagealt_" + item_count;
+        var path = uploads_dir_user;
+        var type = "image";
+        nv_open_browse(script_name + "?" + nv_name_variable + "=upload&popup=1&area=" + area + "&alt=" + alt + "&path=" + path + "&type=" + type, "NVImg", 850, 420, "resizable=no,scrollbars=no,toolbar=no,location=no,status=no");
+        return false;
+    }
+</script>
+
 <!-- END: main -->
