@@ -18,17 +18,25 @@ if (!defined('NV_IS_INFORM')) {
  */
 function main_theme()
 {
-    global $nv_Lang, $module_name;
+    global $nv_Lang, $module_info, $module_name;
+
+    $xtpl = new XTemplate('main.tpl', get_module_tpl_dir('main.tpl'));
+    $xtpl->assign('LANG', \NukeViet\Core\Language::$lang_module);
+    $xtpl->assign('GLANG', \NukeViet\Core\Language::$lang_global);
+    $xtpl->assign('PAGE_URL', NV_BASE_SITEURL . 'index.php?' . NV_LANG_VARIABLE . '=' . NV_LANG_DATA . '&amp;' . NV_NAME_VARIABLE . '=' . $module_name);
 
     $filters = ['unviewed' => $nv_Lang->getModule('filter_unviewed'), 'favorite' => $nv_Lang->getModule('filter_favorite'), 'hidden' => $nv_Lang->getModule('filter_hidden')];
+    foreach ($filters as $key => $title) {
+        $xtpl->assign('FILTER', [
+            'key' => $key,
+            'title' => $title
+        ]);
+        $xtpl->parse('main.filter');
+    }
 
-    $stpl = new \NukeViet\Template\NVSmarty();
-    $stpl->setTemplateDir(str_replace(DIRECTORY_SEPARATOR, '/', __DIR__) . '/smarty');
-    $stpl->assign('LANG', $nv_Lang);
-    $stpl->assign('PAGE_URL', NV_BASE_SITEURL . 'index.php?' . NV_LANG_VARIABLE . '=' . NV_LANG_DATA . '&amp;' . NV_NAME_VARIABLE . '=' . $module_name);
-    $stpl->assign('FILTERS', $filters);
+    $xtpl->parse('main');
 
-    return $stpl->fetch('main.tpl');
+    return $xtpl->text('main');
 }
 
 /**
