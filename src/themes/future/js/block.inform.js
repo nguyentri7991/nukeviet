@@ -10,6 +10,9 @@
 'use strict';
 
 var nukeviet = nukeviet || {};
+/**
+ * Đối tượng chứa các biến và hàm xử lý thông báo
+ */
 nukeviet.inform = {
     cookie: {
         name: nv_cookie_prefix + '_inft',
@@ -21,6 +24,19 @@ nukeviet.inform = {
     timer: null,
     ps: null
 };
+
+// Cập nhật hiển thị số lượng thông báo chưa đọc trên giao diện
+nukeviet.inform.UpdateBadge = () => {
+    const ctn = $('#inform-notification');
+    $('[data-toggle="unreadCounter"]', ctn).text(nukeviet.inform.lastCount > 99 ? '99+' : nukeviet.inform.lastCount);
+    if (nukeviet.inform.lastCount > 0) {
+        $('[data-toggle="unreadBadge"]', ctn).removeClass('d-none');
+    } else {
+        $('[data-toggle="unreadBadge"]', ctn).addClass('d-none');
+    }
+};
+
+// Lấy số lượng thông báo chưa đọc
 nukeviet.inform.GetCount = () => {
     const currentTime = new Date().getTime();
     const elapsedTime = currentTime - nukeviet.inform.lastCheck;
@@ -29,7 +45,7 @@ nukeviet.inform.GetCount = () => {
     if (elapsedTime > nukeviet.inform.refresh) {
         nukeviet.inform.lastCheck = currentTime;
         nv_setCookie(nukeviet.inform.cookie.name, nukeviet.inform.lastCheck, 365);
-        var url = ctn.data('checkinform-url') + ((-1 < ctn.data('checkinform-url').indexOf("?")) ? '&' : '?') + 'nocache=' + currentTime;
+        const url = ctn.data('checkinform-url') + ((-1 < ctn.data('checkinform-url').indexOf("?")) ? '&' : '?') + 'nocache=' + currentTime;
         $.ajax({
             type: 'POST',
             url: url,
@@ -43,31 +59,30 @@ nukeviet.inform.GetCount = () => {
             success: function(data) {
                 nukeviet.inform.lastCount = parseInt(data.count);
                 nv_setCookie(nukeviet.inform.cookie.count, nukeviet.inform.lastCount, 365);
-                $('[data-toggle="unreadCounter"]', ctn).text(nukeviet.inform.lastCount > 99 ? '99+' : nukeviet.inform.lastCount);
-                if (nukeviet.inform.lastCount > 0) {
-                    $('[data-toggle="unreadBadge"]', ctn).removeClass('d-none');
-                } else {
-                    $('[data-toggle="unreadBadge"]', ctn).addClass('d-none');
-                }
+                nukeviet.inform.UpdateBadge();
+            },
+            complete: function() {
+                nukeviet.inform.RunCount(nukeviet.inform.refresh);
             }
         });
-        nukeviet.inform.RunCount(nukeviet.inform.refresh);
         return;
     }
-    $('[data-toggle="unreadCounter"]', ctn).text(nukeviet.inform.lastCount > 99 ? '99+' : nukeviet.inform.lastCount);
-    if (nukeviet.inform.lastCount > 0) {
-        $('[data-toggle="unreadBadge"]', ctn).removeClass('d-none');
-    } else {
-        $('[data-toggle="unreadBadge"]', ctn).addClass('d-none');
-    }
+    nukeviet.inform.UpdateBadge();
     nukeviet.inform.RunCount(nukeviet.inform.refresh - elapsedTime);
 };
+
+/**
+ * Thiết lập thời gian kiểm tra thông báo định kỳ
+ * @param {number} delay Thời gian chờ (ms)
+ */
 nukeviet.inform.RunCount = (delay) => {
     clearTimeout(nukeviet.inform.timer);
     nukeviet.inform.timer = setTimeout(() => {
         nukeviet.inform.GetCount();
     }, delay);
 };
+
+// Lấy danh sách thông báo từ server
 nukeviet.inform.GetList = () => {
     const ctn = $('#inform-notification');
     const loader = $('[data-toggle="loader"]', ctn);
@@ -99,13 +114,33 @@ nukeviet.inform.GetList = () => {
         }
     })
 };
-nukeviet.inform.SetStatus = (id, status, callback) => {
+
+/**
+ * Thiết lập trạng thái cho thông báo (đã xem, yêu thích, ẩn...)
+ * @param {number} id ID thông báo
+ * @param {string} status Trạng thái mới
+ * @param {function} callback Hàm callback sau khi thực hiện xong
+ * @param {HTMLElement} btn Nút bấm (để hiển thị loading)
+ */
+nukeviet.inform.SetStatus = (id, status, callback, btn) => {
     const ctn = $('#inform-notification');
     const url = ctn.data('url') + ((-1 < ctn.data('url').indexOf("?")) ? '&' : '?') + 'nocache=' + new Date().getTime();
+    let icon = null;
+    if (btn) {
+        icon = $('i', $(btn));
+        if (icon.is('.fa-spinner')) return;
+        if (!icon.data('icon')) {
+            icon.data('icon', icon.attr('class'));
+        }
+        icon.removeClass(icon.data('icon')).addClass('fa-spinner fa-spin-pulse');
+    }
     $.ajax({
         type: 'POST',
         url: url,
-        data: 'setStatus=' + status + '&id=' + id,
+        data: {
+            setStatus: status,
+            id: id
+        },
         dataType: "json",
         success: function(result) {
             if ('OK' == result.status) {
@@ -113,6 +148,13 @@ nukeviet.inform.SetStatus = (id, status, callback) => {
                 if (typeof callback === "function") {
                     callback()
                 }
+            } else if (icon) {
+                icon.removeClass('fa-spinner fa-spin-pulse').addClass(icon.data('icon'));
+            }
+        },
+        error: function() {
+            if (icon) {
+                icon.removeClass('fa-spinner fa-spin-pulse').addClass(icon.data('icon'));
             }
         }
     });
@@ -159,7 +201,7 @@ $(function() {
     // Xem đầy đủ
     ctn.on('click', '[data-toggle=more]', function(e) {
         e.preventDefault();
-        var obj = $(this).closest('.item');
+        const obj = $(this).closest('.item');
         $('.more', obj).hide();
         $('.morecontent', obj).show();
         nukeviet.inform.ps.update();
@@ -168,12 +210,12 @@ $(function() {
     // Các nút thao tác
     ctn.on('click', '[data-toggle=informNotifySetStatus]', function(e) {
         e.preventDefault();
-        nukeviet.inform.SetStatus($(this).closest('.item').data('id'), $(this).data('status'));
+        nukeviet.inform.SetStatus($(this).closest('.item').data('id'), $(this).data('status'), null, this);
     });
 
     // Đánh dấu đã đọc khi click vào nội dung
     ctn.on('click', '.message a', function(e) {
-        var item = $(this).closest('.item'),
+        const item = $(this).closest('.item'),
             href = $(this).attr('href');
         if (item.is('.viewed-0')) {
             e.preventDefault();

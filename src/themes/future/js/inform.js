@@ -12,9 +12,18 @@
 $(function() {
     const informObject = $('#inform');
 
-    const informSetStatus = (id, status, callback) => {
+    const informSetStatus = (id, status, callback, btn) => {
         let url = informObject.data('page-url');
         url += ((-1 < url.indexOf("?")) ? '&' : '?') + 'nocache=' + new Date().getTime();
+        let icon = null;
+        if (btn) {
+            icon = $('i', $(btn));
+            if (icon.is('.fa-spinner')) return;
+            if (!icon.data('icon')) {
+                icon.data('icon', icon.attr('class'));
+            }
+            icon.removeClass(icon.data('icon')).addClass('fa-spinner fa-spin-pulse');
+        }
         $.ajax({
             type: 'POST',
             url: url,
@@ -22,6 +31,7 @@ $(function() {
                 setStatus: status,
                 id: id
             },
+            dataType: 'json',
             success: function(result) {
                 if ('OK' == result.status) {
                     if (typeof callback === "function") {
@@ -29,6 +39,13 @@ $(function() {
                     } else {
                         $('[name=filter]', informObject).trigger('change')
                     }
+                } else if (icon) {
+                    icon.removeClass('fa-spinner fa-spin-pulse').addClass(icon.data('icon'));
+                }
+            },
+            error: function() {
+                if (icon) {
+                    icon.removeClass('fa-spinner fa-spin-pulse').addClass(icon.data('icon'));
                 }
             }
         })
@@ -53,7 +70,7 @@ $(function() {
             $.get(url, function(res) {
                 $('.load_content', informObject).html(res)
             })
-        })
+        }, this)
     });
 
     informObject.on('click', '.message a', function(e) {
@@ -65,7 +82,7 @@ $(function() {
                 if ('' != href && '#' != href) {
                     window.location.href = href
                 }
-            })
+            }, null)
         }
     });
 

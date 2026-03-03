@@ -15,7 +15,7 @@
         <div class="message mb-2">
             {$item.message.0}
             {if !empty($item.message.1)}<span class="more">... <u data-toggle="more" role="button">{$LANG->getModule('view_more')}</u></span><span class="morecontent" style="display: none">{$item.message.1}</span>{/if}
-            {if !empty($item.link)}<div class="details"><a href="{$item.link}"><i class="fa fa-caret-right"></i> {$LANG->getModule('details')}</a></div>{/if}
+            {if !empty($item.link)}<div class="details"><a href="{$item.link}"><i class="fa-solid fa-caret-right"></i> {$LANG->getModule('details')}</a></div>{/if}
         </div>
         <div class="foot d-flex justify-content-between align-items-center">
             <small class="text-muted">{$item.add_time}</small>
@@ -46,7 +46,7 @@
 </div>
 {/if}
 {if !empty($GENERATE_PAGE)}
-<div class="panel-footer text-center">
+<div class="card-footer text-center">
     {$GENERATE_PAGE}
 </div>
 {/if}
